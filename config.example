@@ -1,0 +1,19 @@
+#paths and namespaces
+LOG_FILE=/../../../../../logs/log.log
+#CACHE_DIR=/../../../../../tmp/cache/
+#VIEW_DIR=/../../../../../src/views/
+TMP_DIR=/../../../../../tmp/
+
+OPEN_AI_KEY=[from open ai dashboard https://platform.openai.com/api-keys]
+OPEN_AI_MODEL=gpt-4o
+
+#what env is this? (dev or prod)
+ENV=dev
+FORCE_HTTPS=false
+
+#debug level
+LOG_LEV=DEBUG
+
+#if you want to use sentry for critical/shutdown errors, set to true
+SENTRY_ON=false
+SENTRY_DNS_PHP=https://[some string]@sentry.io/[some int]
