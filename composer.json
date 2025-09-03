@@ -1,0 +1,29 @@
+{
+  "require":
+  {
+    "rizwanjiwan/commonpub":"dev-main",
+    "bandwidth-throttle/token-bucket": "^2.0",
+    "openai-php/client": "0.15.*",
+    "fastvolt/markdown": "0.2.*",
+    "ext-pdo": "*",
+    "ext-curl": "*",
+    "ext-iconv": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "rizwanjiwan\\commonai\\": "src/rizwanjiwan/commonai"
+    }
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url":  "git@github.com:rizwanjiwan/commonpub.git"
+    }
+  ],
+  "name": "rizwanjiwan/commonai",
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
+  }
+}
