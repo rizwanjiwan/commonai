@@ -134,7 +134,7 @@ class Client
         ]);
         $this->log->debug('Waiting for run to complete...');
         while(true){    //poll and wait
-            $run = $this->client->threads()->runs()->retrieve($this->thread->id,$run->id);
+            $run = $this->client->threads()->runs()->retrieve($this->threadId,$run->id);
             if (in_array($run->status, ['completed', 'failed', 'cancelled', 'expired'])) {
                 break;
             }
