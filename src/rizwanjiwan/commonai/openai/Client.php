@@ -16,12 +16,14 @@ class Client
     private OpenAI\Client $client;
 
     private Logger $log;
-    private ThreadResponse $thread;
+    private ?int $threadId=null;
+
+    private ?string $instructions=null;
 
     private string $model;
 
     //Two assistants depending on what the user wants to do (with a file or without a file)
-    private Assistantresponse $toolessAssistant;
+    private ?Assistantresponse $toollessAssistant=null;
     private AssistantResponse $fileToolAssistant;
 
     private Files $files;   //files to clean up after the chat
@@ -32,11 +34,6 @@ class Client
         $this->log->debug('Creating OpenAI client with API key and model: '.$model);
         $this->client= OpenAI::client($apiKey);
         $this->model=$model;
-        $this->thread=$this->client->threads()->create();
-        $this->toolessAssistant=$this->client->assistants()->create([
-            'name' => 'toolless-assistant',
-            'model' => $this->model,
-        ]);
         $this->fileToolAssistant=$this->client->assistants()->create([
             'name' => 'file-assistant',
             'model' => $this->model,
@@ -45,6 +42,37 @@ class Client
             ]
         ]);
         $this->files=new Files();
+    }
+
+    /**
+     * Continue conversing with an existing thread
+     * @param int $threadId
+     * @return $this
+     */
+    public function continueThread(int $threadId):self
+    {
+        $this->threadId=$threadId;
+        return $this;
+    }
+
+    public function setInstructions(string $instructions):self
+    {
+        $this->instructions=$instructions;
+        return $this;
+    }
+
+    private function createToollessAssistant():void
+    {
+        if($this->toollessAssistant===null) {
+            $params = [
+                'name' => 'toolless-assistant',
+                'model' => $this->model,
+            ];
+            if ($this->instructions !== null) {
+                $params['instructions'] = $this->instructions;
+            }
+            $this->toollessAssistant = $this->client->assistants()->create($params);
+        }
     }
 
     /**
@@ -79,6 +107,7 @@ class Client
     public function sendMessage(string $prompt,?Files $files=null): string
     {
         $this->log->debug('Chat with prompt: '.$prompt);
+        $this->createToollessAssistant();   //create if not already created
         $msgReq= array(
             'role'      => 'user',
             'content'   => $prompt,
@@ -94,10 +123,13 @@ class Client
             $msgReq['attachments']=$attachments;
         }
         $this->log->debug('Creating message...');
-        $this->client->threads()->messages()->create($this->thread->id,$msgReq);
+        if($this->threadId===null){//create a thread if we don't have one
+                $this->threadId=$this->client->threads()->create()->id;
+        }
+        $this->client->threads()->messages()->create($this->threadId,$msgReq);
         $this->log->debug('Starting run...');
-        $run=$this->client->threads()->runs()->create($this->thread->id,[
-            'assistant_id' => $files==null?$this->toolessAssistant->id:$this->fileToolAssistant->id,
+        $run=$this->client->threads()->runs()->create($this->threadId,[
+            'assistant_id' => $files==null?$this->toollessAssistant->id:$this->fileToolAssistant->id,
             'model' => $this->model,
         ]);
         $this->log->debug('Waiting for run to complete...');
@@ -115,7 +147,7 @@ class Client
         }
 
         // 6) Read the latest assistant message in the thread
-        $msgs = $this->client->threads()->messages()->list($this->thread->id);
+        $msgs = $this->client->threads()->messages()->list($this->threadId);
 
         // Find the newest assistant message
         $assistantText = '';
@@ -133,6 +165,10 @@ class Client
         return 'An error has occurred with OpenAI. No assistant message found.';
     }
 
+    public function getThreadId(): string
+    {
+        return $this->threadId;
+    }
     public function __destruct()
     {
         foreach($this->files->responses as $file) {
