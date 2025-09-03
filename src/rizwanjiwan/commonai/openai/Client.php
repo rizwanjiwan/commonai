@@ -16,7 +16,7 @@ class Client
     private OpenAI\Client $client;
 
     private Logger $log;
-    private ?int $threadId=null;
+    private ?string $threadId=null;
 
     private ?string $instructions=null;
 
@@ -49,7 +49,7 @@ class Client
      * @param int $threadId
      * @return $this
      */
-    public function continueThread(int $threadId):self
+    public function continueThread(string $threadId):self
     {
         $this->threadId=$threadId;
         return $this;
