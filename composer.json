@@ -3,7 +3,7 @@
   {
     "rizwanjiwan/commonpub":"dev-main",
     "bandwidth-throttle/token-bucket": "^2.0",
-    "openai-php/client": "0.15.*",
+    "openai-php/client": "0.16.*",
     "fastvolt/markdown": "0.2.*",
     "ext-pdo": "*",
     "ext-curl": "*",

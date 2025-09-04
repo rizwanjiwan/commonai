@@ -1,8 +1,11 @@
 <?php
 namespace rizwanjiwan\commonai\openai;
 
+use Monolog\Logger;
+
 class AbstractResponse
 {
+    protected Logger $log;
     /**
      * @var string Unique identifier for the response.
      */
@@ -16,10 +19,11 @@ class AbstractResponse
      */
     public int $createdTime;
 
-    public function __construct(string $id, string $object, int $createdTime)
+    protected function __construct(string $id, string $object, int $createdTime)
     {
         $this->id = $id;
         $this->object = $object;
         $this->createdTime = $createdTime;
+        $this->log = new Logger((new \ReflectionClass($this))->getShortName());
     }
 }

@@ -1,0 +1,94 @@
+<?php
+
+namespace rizwanjiwan\commonai\openai;
+
+use Monolog\Logger;
+
+/**
+ * Represents a message from the user to the open AI model for inference.
+ */
+class UserMessage
+{
+    private Logger $log;
+    private \OpenAI\Client $client;
+    private string $model;
+    private ?string $prompt=null;
+    private ?string $instructions=null;
+    private ?MessageResponse $messageResponse;
+
+    private bool $hasSent=false;
+
+    /**
+     * @var File[] of files to send along with the message
+     */
+    private array $files=array(); //File to send along with the message
+
+    public function __construct(\OpenAI\Client $client, string $model, ?MessageResponse $messageResponse=null){
+        $this->client=$client;
+        $this->model=$model;
+        $this->messageResponse=$messageResponse;
+        $this->log=new Logger("UserMessage");
+    }
+
+    public function setPrompt(string $prompt):self
+    {
+        $this->prompt=$prompt;
+        return $this;
+    }
+    public function includeFile(File $file):self
+    {
+        array_push($this->files,$file);
+        return $this;
+    }
+
+    public function setInstructions(string $instructions):self
+    {
+        $this->instructions=$instructions;
+        return $this;
+    }
+    /**
+     * You can only send a message once. If you need to send another message, create a new UserMessage instance from Client.
+     * @throws ApiException if you've already sent this message or forgot to set a prompt
+     */
+    public function send():MessageResponse
+    {
+        if($this->hasSent){
+            $this->log->error('Attempted to resend message');
+            throw new ApiException("Message has already been sent");
+        }
+        if($this->prompt===null){
+            $this->log->error('Prompt not set before sending');
+            throw new ApiException("You must provide a prompt");
+        }
+        $this->log->debug('Sending message: '.$this->prompt);
+        $contentArray=array();
+        array_push($contentArray,array("type"=>"input_text","text"=>$this->prompt));
+        foreach($this->files as $file){
+            array_push($contentArray,array("type"=>"input_file","file_id"=>$file->id));
+        }
+
+        $chatRequest= array(
+            'model'=>$this->model,
+            'input'=>array(
+                "role"=>"user",
+                "content"=>$contentArray
+            ),
+            'store'=>true
+        );
+        if($this->instructions!==null){
+            $chatRequest['instructions']=$this->instructions;
+        }
+        if($this->messageResponse!==null){
+            $chatRequest['previous_response_id']=$this->messageResponse->id;
+        }
+        try{
+            $this->hasSent=true;
+            $response=$this->client->responses()->create($chatRequest);
+            return new MessageResponse($response);
+        }
+        catch(\Exception $e){
+            $this->log->error($e->getMessage()." ".$e->getTraceAsString());
+            throw new ApiException('Failed to send message: ' . $e->getMessage(), 0, $e);
+        }
+    }
+}
