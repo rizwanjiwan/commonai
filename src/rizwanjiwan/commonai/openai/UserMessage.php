@@ -64,11 +64,20 @@ class UserMessage
             throw new ApiException("You must provide a prompt");
         }
         $this->log->debug('Sending message');
+        $input=array();
+        //developer input:
+        if($this->instructions!==null){
+            $contentArray=array();
+            array_push($contentArray,array("type"=>"input_text","text"=>$this->instructions));
+            array_push($input,$contentArray);
+        }
+        //user input:
         $contentArray=array();
         array_push($contentArray,array("type"=>"input_text","text"=>$this->prompt));
         foreach($this->files as $file){
             array_push($contentArray,array("type"=>"input_file","file_id"=>$file->id));
         }
+        array_push($input,$contentArray);
 
         $chatRequest= array(
             'model'=>$this->model,
@@ -80,9 +89,6 @@ class UserMessage
             ),
             'store'=>true
         );
-        if($this->instructions!==null){
-            $chatRequest['instructions']=$this->instructions;
-        }
         if($this->messageResponseId!==null){
             $chatRequest['previous_response_id']=$this->messageResponseId;
         }
