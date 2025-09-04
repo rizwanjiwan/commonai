@@ -83,7 +83,7 @@ class UserMessage
         }
         array_push($input,array(
                                         'role'=>'user',
-                                        $contentArray
+                                        'content'=>$contentArray
                                     )
         );
 
