@@ -23,7 +23,7 @@ class UserMessage
      */
     private array $files=array(); //File to send along with the message
 
-    public function __construct(\OpenAI\Client $client, string $model, $messageResponseId=null){
+    public function __construct(\OpenAI\Client $client, string $model, ?string $messageResponseId=null){
         $this->client=$client;
         $this->model=$model;
         $this->messageResponseId=$messageResponseId;
