@@ -81,12 +81,7 @@ class UserMessage
 
         $chatRequest= array(
             'model'=>$this->model,
-            'input'=>array(
-                array(//input item 1
-                    "role"=>"user",
-                    "content"=>$contentArray
-                ),//... could keep adding more input items here
-            ),
+            'input'=>$input,
             'store'=>true
         );
         if($this->messageResponseId!==null){
