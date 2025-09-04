@@ -41,7 +41,9 @@ class Client
             'file' => fopen($fileName, 'r'),
             'purpose' => 'user_data',
         ]);
-        return new File($response);
+        $file=new File($response);
+        $this->log->debug('Uploaded file '.$file->id.' to OpenAI');
+        return $file;
     }
 
     public function deleteFile(File $file):self

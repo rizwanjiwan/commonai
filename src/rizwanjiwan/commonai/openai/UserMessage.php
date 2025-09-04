@@ -14,7 +14,7 @@ class UserMessage
     private string $model;
     private ?string $prompt=null;
     private ?string $instructions=null;
-    private ?MessageResponse $messageResponse;
+    private ?string $messageResponseId;
 
     private bool $hasSent=false;
 
@@ -23,26 +23,29 @@ class UserMessage
      */
     private array $files=array(); //File to send along with the message
 
-    public function __construct(\OpenAI\Client $client, string $model, ?MessageResponse $messageResponse=null){
+    public function __construct(\OpenAI\Client $client, string $model, $messageResponseId=null){
         $this->client=$client;
         $this->model=$model;
-        $this->messageResponse=$messageResponse;
+        $this->messageResponseId=$messageResponseId;
         $this->log=new Logger("UserMessage");
     }
 
     public function setPrompt(string $prompt):self
     {
+        $this->log->debug('Setting prompt: '.$prompt);
         $this->prompt=$prompt;
         return $this;
     }
     public function includeFile(File $file):self
     {
+        $this->log->debug('Adding file to message: '.$file->id);
         array_push($this->files,$file);
         return $this;
     }
 
     public function setInstructions(string $instructions):self
     {
+        $this->log->debug('Setting instructions: '.$instructions);
         $this->instructions=$instructions;
         return $this;
     }
@@ -60,7 +63,7 @@ class UserMessage
             $this->log->error('Prompt not set before sending');
             throw new ApiException("You must provide a prompt");
         }
-        $this->log->debug('Sending message: '.$this->prompt);
+        $this->log->debug('Sending message');
         $contentArray=array();
         array_push($contentArray,array("type"=>"input_text","text"=>$this->prompt));
         foreach($this->files as $file){
@@ -78,8 +81,8 @@ class UserMessage
         if($this->instructions!==null){
             $chatRequest['instructions']=$this->instructions;
         }
-        if($this->messageResponse!==null){
-            $chatRequest['previous_response_id']=$this->messageResponse->id;
+        if($this->messageResponseId!==null){
+            $chatRequest['previous_response_id']=$this->messageResponseId;
         }
         try{
             $this->hasSent=true;
