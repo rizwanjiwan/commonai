@@ -73,8 +73,10 @@ class UserMessage
         $chatRequest= array(
             'model'=>$this->model,
             'input'=>array(
-                "role"=>"user",
-                "content"=>$contentArray
+                array(//input item 1
+                    "role"=>"user",
+                    "content"=>$contentArray
+                ),//... could keep adding more input items here
             ),
             'store'=>true
         );
