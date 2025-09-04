@@ -69,7 +69,11 @@ class UserMessage
         if($this->instructions!==null){
             $contentArray=array();
             array_push($contentArray,array("type"=>"input_text","text"=>$this->instructions));
-            array_push($input,$contentArray);
+            array_push($input,array(
+                                            'role'=>'developer',
+                                            'content'=>$contentArray
+                )
+            );
         }
         //user input:
         $contentArray=array();
@@ -77,7 +81,11 @@ class UserMessage
         foreach($this->files as $file){
             array_push($contentArray,array("type"=>"input_file","file_id"=>$file->id));
         }
-        array_push($input,$contentArray);
+        array_push($input,array(
+                                        'role'=>'user',
+                                        $contentArray
+                                    )
+        );
 
         $chatRequest= array(
             'model'=>$this->model,
