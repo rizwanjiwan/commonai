@@ -179,7 +179,9 @@ class UserMessage
             }
             $parameters['properties'][$parameter->name]=$paramArray;
         }
-        $parameters['required']=$required;
+        if(count($required)>0) {
+            $parameters['required']=$required;
+        }
         $parameters['additionalProperties']=false;
 
         //now full function dfn
