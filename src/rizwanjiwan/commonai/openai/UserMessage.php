@@ -174,14 +174,10 @@ class UserMessage
             if($parameter->enum!==null){
                 $paramArray['enum']=$parameter->enum;
             }
-            if($parameter->isRequired){
-                array_push($required,$parameter->name);
-            }
+            array_push($required,$parameter->name); //every parameter is required because we use strict mode
             $parameters['properties'][$parameter->name]=$paramArray;
         }
-        if(count($required)>0) {
-            $parameters['required']=$required;
-        }
+        $parameters['required']=$required;
         $parameters['additionalProperties']=false;
 
         //now full function dfn
