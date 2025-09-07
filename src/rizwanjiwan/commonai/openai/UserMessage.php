@@ -120,8 +120,8 @@ class UserMessage
             $this->hasSent=true;
             $toolsCalled=false;
             $response=null;
+            $response=$this->client->responses()->create($chatRequest);//make call
             do{ //loop to call tools if needed
-                $response=$this->client->responses()->create($chatRequest);
                 foreach($response->output as $item){
                     if($item->type==='function_call'){
                         $toolsCalled=true;
@@ -143,14 +143,14 @@ class UserMessage
                 }
                 if($toolsCalled) {
                     $this->log->debug('Calling with tools...');
-                    $response = $this->client->responses()->create($chatRequest);
+                    $response = $this->client->responses()->create($chatRequest);//make call for next loop iteration (if needed)
                 }
                 else{
                     $this->log->debug('No tools called');
                 }
             }while($toolsCalled && empty($response->outputText));
+            //should have a message from the model now
             return new MessageResponse($response);
-
         }
         catch(\Exception $e){
             $this->log->error($e->getMessage()." ".$e->getTraceAsString());
