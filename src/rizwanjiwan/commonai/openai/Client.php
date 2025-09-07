@@ -52,7 +52,7 @@ class Client
         $this->client->files()->delete($file->id);
         return $this;
     }
-    public function createUserMessage(string $previousResponseId=null):UserMessage
+    public function createUserMessage(?string $previousResponseId=null):UserMessage
     {
         return new UserMessage($this->client,$this->model,$previousResponseId);
     }

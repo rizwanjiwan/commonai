@@ -16,7 +16,14 @@ class UserMessage
     private ?string $instructions=null;
     private ?string $messageResponseId;
 
+    /**
+     * @var Tool[] array of tools available
+     */
+    private array $tools=array();   //tools available
+
     private bool $hasSent=false;
+
+    private array $additionalInputs=array();//internal used only for tools
 
     /**
      * @var File[] of files to send along with the message
@@ -49,6 +56,12 @@ class UserMessage
         $this->instructions=$instructions;
         return $this;
     }
+
+    public function provideTool(Tool $tool):self
+    {
+        $this->tools[$tool->getName()]=$tool;
+        return $this;
+    }
     /**
      * You can only send a message once. If you need to send another message, create a new UserMessage instance from Client.
      * @throws ApiException if you've already sent this message or forgot to set a prompt
@@ -78,6 +91,7 @@ class UserMessage
         //user input:
         $contentArray=array();
         array_push($contentArray,array("type"=>"input_text","text"=>$this->prompt));
+        //file input
         foreach($this->files as $file){
             array_push($contentArray,array("type"=>"input_file","file_id"=>$file->id));
         }
@@ -87,22 +101,124 @@ class UserMessage
                                     )
         );
 
+        //prep request:
         $chatRequest= array(
             'model'=>$this->model,
             'input'=>$input,
-            'store'=>true
+            'store'=>true,
+            'tools'=>array()
         );
+        //add tools available
+        foreach($this->tools as $tool){
+            array_push($chatRequest['tools'],$this->toolToDefinition($tool));
+        }
+
         if($this->messageResponseId!==null){
             $chatRequest['previous_response_id']=$this->messageResponseId;
         }
         try{
             $this->hasSent=true;
-            $response=$this->client->responses()->create($chatRequest);
+            $toolsCalled=false;
+            $response=null;
+            do{ //loop to call tools if needed
+                $response=$this->client->responses()->create($chatRequest);
+                foreach($response->output as $item){
+                    if($item->type==='function_call'){
+                        $toolsCalled=true;
+                        $itemArray=$item->toArray();
+                        $itemArray['call_id']=$item->callId;    //hack because toArray doesn't include call_id just callId (bug upstream?)
+                        array_push($chatRequest['input'],$itemArray);//add function call item in for the next request
+                        $this->log->debug('Calling tool: '.$item->name);
+                        $tool=$this->tools[$item->name];
+                        $result=$tool->execute(json_decode($item->arguments,true));
+                        //append to input
+                        array_push($chatRequest['input'],
+                            array(
+                                'type'=>'function_call_output',
+                                'call_id'=> $item->callId,
+                                'output'=>json_encode($result)
+                            )
+                        );
+                    }
+                }
+                if($toolsCalled) {
+                    $this->log->debug('Calling with tools...');
+                    $response = $this->client->responses()->create($chatRequest);
+                }
+                else{
+                    $this->log->debug('No tools called');
+                }
+            }while($toolsCalled && empty($response->outputText));
             return new MessageResponse($response);
+
         }
         catch(\Exception $e){
             $this->log->error($e->getMessage()." ".$e->getTraceAsString());
             throw new ApiException('Failed to send message: ' . $e->getMessage(), 0, $e);
         }
     }
+
+    private function toolToDefinition(Tool $tool): ?array
+    {
+        //build parameters first
+        $parameters=array(
+            'type'=>'object',
+            'properties'=>array()
+        );
+        $required=array();
+        foreach($tool->getParameters() as $parameter){
+            $paramArray=array();
+            $paramArray['type']=$parameter->type;
+            $paramArray['name']=$parameter->name;
+            $paramArray['description']=$parameter->description;
+            if($parameter->enum!==null){
+                $paramArray['enum']=$parameter->enum;
+            }
+            if($parameter->isRequired){
+                array_push($required,$parameter->name);
+            }
+            $parameters['properties'][$parameter->name]=$paramArray;
+        }
+        $parameters['required']=$required;
+        $parameters['additionalProperties']=false;
+
+        //now full function dfn
+        $toolArray=array(
+            'type'=>'function',
+            'name'=>$tool->getName(),
+            'description'=>$tool->getDescription(),
+            'strict'=>true,
+            'parameters'=>$parameters
+        );
+
+        return $toolArray;
+    }
+
+/***
+ * $tools = [
+ *      [
+ *          'type' => 'function',
+ *          'function' => [
+ *              'name' => 'get_current_weather',
+ *              'description' => 'Get the current weather in a given location',
+ *              'parameters' => [
+ *                  'type' => 'object',
+ *                  'properties' => [
+ *                      'location' => [
+ *                          'type' => 'string',
+ *                          'description' => 'The city and country, e.g. Toronto, Canada'
+ *                      ],
+ *                      'unit' => [
+ *                          'type' => 'string',
+ *                          'enum' => ['celsius', 'fahrenheit'],
+ *                          'description' => 'The unit for temperature'
+ *                      ]
+ *                  ],
+ *                  'required' => ['location']
+ *              ]
+ *          ]
+ *      ]
+ * ];
+ * @return array
+ */
 }
