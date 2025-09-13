@@ -2,7 +2,6 @@
 
 namespace rizwanjiwan\commonai\openai;
 
-use Exception;
 use Monolog\Logger;
 use OpenAI;
 use OpenAI\Responses\Assistants\AssistantResponse;
@@ -46,10 +45,24 @@ class Client
         return $file;
     }
 
-    public function deleteFile(File $file):self
+    /**
+     * @return File[]
+     */
+    public function listFiles():array
     {
-        $this->log->debug('Uploading file '.$file->id.' to OpenAI');
-        $this->client->files()->delete($file->id);
+        $this->log->debug('Listing files from OpenAI');
+        $response=$this->client->files()->list();
+        $files=[];
+        foreach($response->data as $file)
+        {
+            $files[]=new File($file);
+        }
+        return $files;
+    }
+    public function deleteFile(string $fileId):self
+    {
+        $this->log->debug('Deleting file '.$fileId.' from OpenAI');
+        $this->client->files()->delete($fileId);
         return $this;
     }
     public function createUserMessage(?string $previousResponseId=null):UserMessage

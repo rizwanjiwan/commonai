@@ -26,7 +26,7 @@ class UserMessage
     private array $additionalInputs=array();//internal used only for tools
 
     /**
-     * @var File[] of files to send along with the message
+     * @var string[] of file IDs to send along with the message
      */
     private array $files=array(); //File to send along with the message
 
@@ -43,10 +43,10 @@ class UserMessage
         $this->prompt=$prompt;
         return $this;
     }
-    public function includeFile(File $file):self
+    public function includeFile(string $fileId):self
     {
-        $this->log->debug('Adding file to message: '.$file->id);
-        array_push($this->files,$file);
+        $this->log->debug('Adding file to message: '.$fileId);
+        array_push($this->files,$fileId);
         return $this;
     }
 
@@ -92,8 +92,8 @@ class UserMessage
         $contentArray=array();
         array_push($contentArray,array("type"=>"input_text","text"=>$this->prompt));
         //file input
-        foreach($this->files as $file){
-            array_push($contentArray,array("type"=>"input_file","file_id"=>$file->id));
+        foreach($this->files as $fileId){
+            array_push($contentArray,array("type"=>"input_file","file_id"=>$fileId));
         }
         array_push($input,array(
                                         'role'=>'user',
