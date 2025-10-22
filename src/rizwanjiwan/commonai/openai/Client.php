@@ -59,6 +59,22 @@ class Client
         }
         return $files;
     }
+
+    /**
+     * Check if a file exists
+     * @param string $fileId
+     * @return bool
+     */
+    public function fileExists(string $fileId):bool
+    {
+        $this->log->debug('Retrieve file '.$fileId.' from OpenAI');
+        try{
+            $this->client->files()->retrieve($fileId);
+        }catch(\Exception $e){
+            return false;
+        }
+        return true;
+    }
     public function deleteFile(string $fileId):self
     {
         $this->log->debug('Deleting file '.$fileId.' from OpenAI');
