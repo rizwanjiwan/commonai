@@ -3,6 +3,7 @@
 namespace rizwanjiwan\commonai\openai;
 
 use Monolog\Logger;
+use rizwanjiwan\common\classes\LogManager;
 
 /**
  * Represents a message from the user to the open AI model for inference.
@@ -34,7 +35,7 @@ class UserMessage
         $this->client=$client;
         $this->model=$model;
         $this->messageResponseId=$messageResponseId;
-        $this->log=new Logger("UserMessage");
+        $this->log=LogManager::createLogger("UserMessage");
     }
 
     public function setPrompt(string $prompt):self
@@ -120,10 +121,22 @@ class UserMessage
             $this->hasSent=true;
             $toolsCalled=false;
             $response=null;
+            //$this->log->debug('Making initial API call: '.json_encode($chatRequest));
             $response=$this->client->responses()->create($chatRequest);//make call
             do{ //loop to call tools if needed
+                //$this->log->debug(json_encode($response));
                 foreach($response->output as $item){
-                    if($item->type==='function_call'){
+                    if($item->type==='reasoning'){
+                        array_push($chatRequest['input'],
+                            array(
+                                'type'=>'reasoning',
+                                'id'=> $item->id,
+                                'summary'=>$item->summary
+                            )
+                        );
+
+                    }
+                    else if($item->type==='function_call'){
                         $toolsCalled=true;
                         $itemArray=$item->toArray();
                         $itemArray['call_id']=$item->callId;    //hack because toArray doesn't include call_id just callId (bug upstream?)
