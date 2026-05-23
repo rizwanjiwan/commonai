@@ -4,21 +4,17 @@ namespace rizwanjiwan\commonai\openai;
 
 use Monolog\Logger;
 use OpenAI;
-use OpenAI\Responses\Assistants\AssistantResponse;
+use OpenAI\Contracts\ClientContract;
 use rizwanjiwan\common\classes\LogManager;
 
 
 class Client
 {
-    private OpenAI\Client $client;
+    private ClientContract $client;
 
     private Logger $log;
 
     private string $model;
-
-    //Two assistants depending on what the user wants to do (with a file or without a file)
-    private ?Assistantresponse $toollessAssistant = null;
-
 
     public function __construct(string $apiKey, string $model)
     {

@@ -2,8 +2,7 @@
   "require":
   {
     "rizwanjiwan/commonpub":"dev-main",
-    "bandwidth-throttle/token-bucket": "^2.0",
-    "openai-php/client": "0.16.*",
+    "openai-php/client": "0.19.*",
     "fastvolt/markdown": "0.2.*",
     "ext-pdo": "*",
     "ext-curl": "*",
@@ -21,9 +20,14 @@
     }
   ],
   "name": "rizwanjiwan/commonai",
+  "description": "Common OpenAI client utilities.",
   "config": {
+    "platform": {
+      "php": "8.3.0"
+    },
     "allow-plugins": {
-      "php-http/discovery": true
+      "php-http/discovery": true,
+      "tbachert/spi": true
     }
   }
 }

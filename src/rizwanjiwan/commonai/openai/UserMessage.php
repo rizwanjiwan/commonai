@@ -3,6 +3,7 @@
 namespace rizwanjiwan\commonai\openai;
 
 use Monolog\Logger;
+use OpenAI\Contracts\ClientContract;
 use rizwanjiwan\common\classes\LogManager;
 
 /**
@@ -11,7 +12,7 @@ use rizwanjiwan\common\classes\LogManager;
 class UserMessage
 {
     private Logger $log;
-    private \OpenAI\Client $client;
+    private ClientContract $client;
     private string $model;
     private ?string $prompt=null;
     private ?string $instructions=null;
@@ -31,7 +32,7 @@ class UserMessage
      */
     private array $files=array(); //File to send along with the message
 
-    public function __construct(\OpenAI\Client $client, string $model, ?string $messageResponseId=null){
+    public function __construct(ClientContract $client, string $model, ?string $messageResponseId=null){
         $this->client=$client;
         $this->model=$model;
         $this->messageResponseId=$messageResponseId;
@@ -124,22 +125,16 @@ class UserMessage
             //$this->log->debug('Making initial API call: '.json_encode($chatRequest));
             $response=$this->client->responses()->create($chatRequest);//make call
             do{ //loop to call tools if needed
+                $toolsCalled=false;
                 //$this->log->debug(json_encode($response));
                 foreach($response->output as $item){
                     if($item->type==='reasoning'){
-                        array_push($chatRequest['input'],
-                            array(
-                                'type'=>'reasoning',
-                                'id'=> $item->id,
-                                'summary'=>$item->summary
-                            )
-                        );
+                        array_push($chatRequest['input'],$item->toArray());
 
                     }
                     else if($item->type==='function_call'){
                         $toolsCalled=true;
                         $itemArray=$item->toArray();
-                        $itemArray['call_id']=$item->callId;    //hack because toArray doesn't include call_id just callId (bug upstream?)
                         array_push($chatRequest['input'],$itemArray);//add function call item in for the next request
                         $this->log->debug('Calling tool: '.$item->name);
                         $tool=$this->tools[$item->name];
