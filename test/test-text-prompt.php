@@ -1,10 +1,17 @@
 <?php
 
+/**
+ * Manual OpenAI text-prompt integration check.
+ *
+ * Deprecations remain enabled intentionally so runtime compatibility problems
+ * are visible instead of being hidden by the test harness.
+ */
+
 use rizwanjiwan\common\classes\Config;
 use rizwanjiwan\common\classes\LogManager;
 use rizwanjiwan\commonai\openai\Client;
 
-error_reporting(E_ALL & ~E_DEPRECATED);
+error_reporting(E_ALL);
 
 date_default_timezone_set('America/Toronto');
 require_once realpath(dirname(__FILE__)).'/../vendor/autoload.php';
@@ -28,4 +35,3 @@ catch(Exception $e){
     $log->error($e->getMessage()." ".$e->getTraceAsString());
     echo "Error: ".$e->getMessage();
 }
-
