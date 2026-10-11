@@ -3822,12 +3822,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/rizwanjiwan/commonpub.git",
-                "reference": "a01d671ce52dfaa4ae503cf70bbe92cb25dc8cbf"
+                "reference": "9db6d6d4a28cbfdab9f931487d6977c054b7251c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/rizwanjiwan/commonpub/zipball/a01d671ce52dfaa4ae503cf70bbe92cb25dc8cbf",
-                "reference": "a01d671ce52dfaa4ae503cf70bbe92cb25dc8cbf",
+                "url": "https://api.github.com/repos/rizwanjiwan/commonpub/zipball/9db6d6d4a28cbfdab9f931487d6977c054b7251c",
+                "reference": "9db6d6d4a28cbfdab9f931487d6977c054b7251c",
                 "shasum": ""
             },
             "require": {
@@ -3866,7 +3866,7 @@
                 "source": "https://github.com/rizwanjiwan/commonpub/tree/main",
                 "issues": "https://github.com/rizwanjiwan/commonpub/issues"
             },
-            "time": "2026-10-11T13:44:54+00:00"
+            "time": "2026-10-11T14:06:04+00:00"
         },
         {
             "name": "sentry/sdk",
