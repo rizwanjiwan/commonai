@@ -129,12 +129,19 @@ class UserMessage
                 //$this->log->debug(json_encode($response));
                 foreach($response->output as $item){
                     if($item->type==='reasoning'){
-                        array_push($chatRequest['input'],$item->toArray());
+                        // Response output items contain fields such as status that are not
+                        // accepted when the item is sent back as request input.
+                        $itemArray=$item->toArray();
+                        unset($itemArray['status']);
+                        array_push($chatRequest['input'],$itemArray);
 
                     }
                     else if($item->type==='function_call'){
                         $toolsCalled=true;
                         $itemArray=$item->toArray();
+                        // The function call status describes the completed response item;
+                        // it is not part of the function call input schema.
+                        unset($itemArray['status']);
                         array_push($chatRequest['input'],$itemArray);//add function call item in for the next request
                         $this->log->debug('Calling tool: '.$item->name);
                         $tool=$this->tools[$item->name];
