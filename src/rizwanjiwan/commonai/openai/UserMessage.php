@@ -4,6 +4,8 @@ namespace rizwanjiwan\commonai\openai;
 
 use Monolog\Logger;
 use OpenAI\Contracts\ClientContract;
+use OpenAI\Exceptions\ServerException;
+use OpenAI\Responses\Responses\CreateResponse;
 use rizwanjiwan\common\classes\LogManager;
 
 /**
@@ -11,6 +13,9 @@ use rizwanjiwan\common\classes\LogManager;
  */
 class UserMessage
 {
+    private const DEFAULT_RETRY_DELAY_SECONDS = 1;
+    private const MAX_RETRY_DELAY_SECONDS = 2;
+
     private Logger $log;
     private ClientContract $client;
     private string $model;
@@ -65,8 +70,11 @@ class UserMessage
         return $this;
     }
     /**
-     * You can only send a message once. If you need to send another message, create a new UserMessage instance from Client.
-     * @throws ApiException if you've already sent this message or forgot to set a prompt
+     * Send the prompt and return the model's reply after executing any requested tools.
+     * Each UserMessage can be sent once. A brief 503 retries only the affected API request.
+     *
+     * @return MessageResponse The model's final reply.
+     * @throws ApiException If the message was already sent, the prompt is missing, or processing fails.
      */
     public function send():MessageResponse
     {
@@ -123,7 +131,7 @@ class UserMessage
             $toolsCalled=false;
             $response=null;
             //$this->log->debug('Making initial API call: '.json_encode($chatRequest));
-            $response=$this->client->responses()->create($chatRequest);//make call
+            $response=$this->createResponse($chatRequest, 'initial request');
             do{ //loop to call tools if needed
                 $toolsCalled=false;
                 //$this->log->debug(json_encode($response));
@@ -158,7 +166,7 @@ class UserMessage
                 }
                 if($toolsCalled) {
                     $this->log->debug('Calling with tools...');
-                    $response = $this->client->responses()->create($chatRequest);//make call for next loop iteration (if needed)
+                    $response = $this->createResponse($chatRequest, 'tool follow-up');
                 }
                 else{
                     $this->log->debug('No tools called');
@@ -171,6 +179,51 @@ class UserMessage
             $this->log->error($e->getMessage()." ".$e->getTraceAsString());
             throw new ApiException('Failed to send message: ' . $e->getMessage(), 0, $e);
         }
+    }
+
+    /**
+     * Retry a single Responses API request once if the service is briefly unavailable.
+     * On a follow-up, the payload already contains the tool results. Reuse it as sent.
+     *
+     * @param array<string, mixed> $chatRequest The complete payload for this API call.
+     * @param string $stage Identifies the initial request or tool follow-up in the log.
+     * @return CreateResponse The successful response for this payload.
+     * @throws \Exception If the SDK fails and a retry is unavailable or unsuccessful.
+     */
+    private function createResponse(array $chatRequest, string $stage): CreateResponse
+    {
+        try {
+            return $this->client->responses()->create($chatRequest);
+        } catch (ServerException $e) {
+            if ($e->response->getStatusCode() !== 503) {
+                throw $e;
+            }
+
+            // Retry-After can be a number of seconds or an HTTP date.
+            $retryAfter = trim($e->response->getHeaderLine('Retry-After'));
+            $delay = self::DEFAULT_RETRY_DELAY_SECONDS;
+            if (ctype_digit($retryAfter)) {
+                $delay = (int)$retryAfter;
+            } elseif ($retryAfter !== '') {
+                $retryAt = strtotime($retryAfter);
+                if ($retryAt !== false) {
+                    $delay = max(0, $retryAt - time());
+                }
+            }
+
+            $requestId = $e->response->getHeaderLine('x-request-id');
+            $details = 'OpenAI returned HTTP 503 for ' . $stage . ' on model ' . $this->model
+                . ($requestId === '' ? '' : ' (request ID ' . $requestId . ')');
+            if ($delay > self::MAX_RETRY_DELAY_SECONDS) {
+                $this->log->warning($details . '. Retry-After exceeds the wait limit.');
+                throw $e;
+            }
+            $this->log->warning($details . '. Retrying once after ' . $delay . ' second(s).');
+            sleep($delay);
+        }
+
+        // Let send() report a failed second attempt through its usual exception handler.
+        return $this->client->responses()->create($chatRequest);
     }
 
     private function toolToDefinition(Tool $tool): ?array
